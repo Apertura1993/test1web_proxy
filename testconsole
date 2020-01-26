@@ -1,0 +1,53 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Net;
+using System.Text;
+using System.IO;
+using System.Threading.Tasks;
+using Titanium.Web.Proxy;
+using Titanium.Web.Proxy.EventArguments;
+using Titanium.Web.Proxy.Models;
+using System.Collections;
+using System.Net.Sockets;
+using System.Net.NetworkInformation;
+using System.Data.SqlClient;
+using System.Web;
+using Org.BouncyCastle.Asn1.Ocsp;
+using System.Web.UI;
+
+namespace ConsoleApplication1
+{ 
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            var proxyServer = new ProxyServer();
+            proxyServer.BeforeRequest += ProxyServer_BeforeRequestAsync;
+            proxyServer.BeforeResponse += ProxyServer_BeforeResponse;
+            proxyServer.AfterResponse += ProxyServer_AfterResponse;
+            var explicitEndPoint = new ExplicitProxyEndPoint(IPAddress.Any, 8000, true);
+            proxyServer.AddEndPoint(explicitEndPoint);
+            proxyServer.Start();
+            foreach (var endPoint in proxyServer.ProxyEndPoints)
+                Console.WriteLine("Listening on '{0}' endpoint at Ip {1} and port: {2} ",
+                    endPoint.GetType().Name, endPoint.IpAddress, endPoint.Port);
+
+            proxyServer.SetAsSystemHttpProxy(explicitEndPoint);
+            proxyServer.SetAsSystemHttpsProxy(explicitEndPoint);
+            Console.ReadLine();
+            proxyServer.BeforeRequest -= ProxyServer_BeforeRequestAsync;
+            proxyServer.DisableSystemHttpProxy();
+            proxyServer.DisableSystemHttpsProxy();
+            proxyServer.Stop();            
+        }
+
+        private static async Task ProxyServer_BeforeRequestAsync(object sender, SessionEventArgs e)
+        {
+            Console.WriteLine(e.WebSession.Request.RequestUri.AbsoluteUri.ToString());       
+        }
+    }
+}
